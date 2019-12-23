@@ -1,0 +1,7 @@
+.pytest_cache
+.eggs
+*.egg-info
+.install-test
+package-lock.json
+venv
+build
