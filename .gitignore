@@ -1,0 +1,32 @@
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# We don't want results to be committed
+results/
+examples/results
+
+# Ignore caches
+.pytest_cache/
+
+*.pyc
+*.pyo
+
+.DS_Store
+
+node_modules
+package-lock.json
+.vscode/
