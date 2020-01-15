@@ -17,6 +17,11 @@ install:
 build:
 	python3 setup.py build
 
+.PHONY: upload
+# TODO: Change this
+upload:
+	python3 setup.py sdist check upload --sign
+
 .PHONY: flake
 flake:
 	flake8 setup.py
