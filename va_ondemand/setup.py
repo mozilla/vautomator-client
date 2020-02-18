@@ -41,6 +41,7 @@ setup(
     packages=find_packages(include=["va_ondemand"]),
     package_data={
         "va_ondemand": [
+            # TODO
         ]
     },
     setup_requires=setup_requirements,

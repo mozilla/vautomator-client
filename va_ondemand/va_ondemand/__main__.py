@@ -136,8 +136,7 @@ def monitor_ct_logs(api_key):
     certstream.listen_for_events(print_callback, url='wss://certstream.calidog.io/')
 
 
-def main():
-
+def choose_mode():
     parser = argparse.ArgumentParser(prog='va_ondemand.py')
     subparser = parser.add_subparsers()
     subparser.required = True
@@ -171,6 +170,11 @@ def main():
     )
     monitor_mode_parser.add_argument("--region", help="Provide the AWS region manually", default="us-west-2")
     args = parser.parse_args()
+    return args
+
+
+def main():
+    args = choose_mode(sys.argv[1:])
 
     # Check if the target given is valid
     if not validate_target(args.fqdn):
@@ -181,13 +185,10 @@ def main():
 
     if args.run:
         run_vulnerability_assessment(api_key, args.fqdn)
-
     elif args.download:
         download_assessment_results(api_key, args)
-
     elif args.monitor:
         monitor_ct_logs(api_key)
-
     else:
         logging.error("Unsupported mode. Exiting.")
         sys.exit(127)
