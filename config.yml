@@ -1,0 +1,3 @@
+vautomator:
+  url: "https://vautomator.security.allizom.org/api"
+  region: "us-west-2"
