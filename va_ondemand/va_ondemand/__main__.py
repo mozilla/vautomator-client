@@ -10,11 +10,23 @@ import getpass
 import shutil
 import tarfile
 import certstream
+import yaml
 from va_ondemand.target import Target
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-CUSTOM_DOMAIN = "vautomator.security.allizom.org"
-DEFAULT_REGION = "us-west-2"
+
+
+def load_config():
+
+    config = {}
+    path = os.path.join(os.path.dirname(__file__), '..', 'config.yml')
+    try:
+        with open(path) as fd:
+            config = yaml.safe_load(fd)
+    except Exception as e:
+        logger.error("Could not parse configuration file: {}".format(e))
+        sys.exit(127)
+    return config
 
 
 def validate_target(fqdn):
@@ -26,7 +38,7 @@ def validate_target(fqdn):
     return True
 
 
-def check_authorization(aws_profile=None, aws_region=DEFAULT_REGION):
+def check_authorization(aws_profile=None, aws_region=region):
     if aws_profile:
         # Establish a session with that profile if given
         session = boto3.Session(profile_name=aws_profile, region_name=aws_region)
@@ -42,9 +54,9 @@ def check_authorization(aws_profile=None, aws_region=DEFAULT_REGION):
     return gwapi_key
 
 
-def run_vulnerability_assessment(api_key, host):
+def run_vulnerability_assessment(api_key, host, url):
     # Using the REST endpoint exposed by the step function
-    scan_all_url = "https://{}/api/scan".format(CUSTOM_DOMAIN)
+    scan_all_url = "{}/scan".format(url)
     session = requests.Session()
     session.headers.update({"X-Api-Key": api_key, "Content-Type": "application/json"})
 
@@ -62,8 +74,8 @@ def run_vulnerability_assessment(api_key, host):
     session.close()
 
 
-def download_assessment_results(api_key, arguments):
-    download_url = "https://{}/api/results".format(CUSTOM_DOMAIN)
+def download_assessment_results(api_key, arguments, url):
+    download_url = "{}/results".format(url)
     session = requests.Session()
     session.headers.update({"X-Api-Key": api_key, "Accept": "application/gzip", "Content-Type": "application/json"})
 
@@ -99,8 +111,8 @@ def download_assessment_results(api_key, arguments):
     session.close()
 
 
-def monitor_ct_logs(api_key):
-    scan_all_url = "https://{}/api/scan".format(CUSTOM_DOMAIN)
+def monitor_ct_logs(api_key, url):
+    scan_all_url = "{}/scan".format(url)
 
     def print_callback(message, context):
         logging.debug("Message -> {}".format(message))
@@ -176,19 +188,24 @@ def choose_mode():
 def main():
     args = choose_mode(sys.argv[1:])
 
-    # Check if the target given is valid
+    # STEP 1: Load config
+    config = load_config()
+    vautomator_url = config['vautomator']['url']
+    region = config['vautomator']['region']
+
+    # STEP 2: Check if the target given is valid
     if not validate_target(args.fqdn):
         sys.exit(127)
 
-    # We are good for target, let's check the profile OR API key
-    api_key = check_authorization(args.profile, args.region)
+    # STEP 3: We are good for target, let's check the profile OR API key
+    api_key = check_authorization(args.profile, region)
 
     if args.run:
-        run_vulnerability_assessment(api_key, args.fqdn)
+        run_vulnerability_assessment(api_key, args.fqdn, vautomator_url)
     elif args.download:
-        download_assessment_results(api_key, args)
+        download_assessment_results(api_key, args, vautomator_url)
     elif args.monitor:
-        monitor_ct_logs(api_key)
+        monitor_ct_logs(api_key, vautomator_url)
     else:
         logging.error("Unsupported mode. Exiting.")
         sys.exit(127)
