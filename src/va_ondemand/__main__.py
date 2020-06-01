@@ -16,15 +16,13 @@ from va_ondemand.target import Target
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
-def load_config():
-
+def load_config(path):
     config = {}
-    path = os.path.join(os.path.dirname(__file__), '..', 'config.yml')
     try:
         with open(path) as fd:
             config = yaml.safe_load(fd)
     except Exception as e:
-        logger.error("Could not parse configuration file: {}".format(e))
+        logging.error("Could not parse configuration file: {}".format(e))
         sys.exit(127)
     return config
 
@@ -38,17 +36,17 @@ def validate_target(fqdn):
     return True
 
 
-def check_authorization(aws_profile=None, aws_region=region):
-    if aws_profile:
-        # Establish a session with that profile if given
+def check_authorization(aws_region, aws_profile=None):
+    # Establish a session with that profile if given
+    # If maws is used, boto will read relevant details from env variables
+    try:
         session = boto3.Session(profile_name=aws_profile, region_name=aws_region)
         # Programmatically obtain the REST API key
         apigw_client = session.client("apigateway")
         aws_response = apigw_client.get_api_keys(nameQuery="vautomator-serverless", includeValues=True)["items"][0]
         rest_api_id, stage_name = "".join(aws_response["stageKeys"]).split("/")
         gwapi_key = aws_response["value"]
-    else:
-        # Prompt the user for the API key
+    except Exception:
         gwapi_key = getpass.getpass(prompt='API key: ')
 
     return gwapi_key
@@ -152,10 +150,12 @@ def choose_mode():
     parser = argparse.ArgumentParser(prog='va_ondemand.py')
     subparser = parser.add_subparsers()
     subparser.required = True
-    subparser.dest = 'run OR download OR monitor'
+    subparser.dest = 'mode'
 
     download_mode_parser = subparser.add_parser("download", help="Download results of an assessment for given host.")
-    download_mode_parser.add_argument("fqdn", type=str, help="The target to scan", required=True)
+    # download_mode_parser.add_argument("fqdn", type=str, help="The target to scan", required=True)
+    download_mode_parser.add_argument("fqdn", type=str, help="The target to scan")
+    download_mode_parser.add_argument("--config", type=str, default= "config.yml", help="Config file for this program")
     download_mode_parser.add_argument(
         "--profile",
         help="Provide the AWS Profile from your boto configuration",
@@ -166,7 +166,9 @@ def choose_mode():
     download_mode_parser.add_argument("--results", help="Specify a results directory", default=os.path.join(os.getcwd(), "results/"))
 
     run_mode_parser = subparser.add_parser("run", help="Run a vulnerability assessment for given host.")
-    run_mode_parser.add_argument("fqdn", type=str, help="The target to scan", required=True)
+    # run_mode_parser.add_argument("fqdn", type=str, help="The target to scan", required=True)
+    run_mode_parser.add_argument("fqdn", type=str, help="The target to scan")
+    run_mode_parser.add_argument("--config", type=str, default="config.yml", help="Config file for this program")
     run_mode_parser.add_argument(
         "--profile",
         help="Provide the AWS Profile from your boto configuration",
@@ -175,6 +177,7 @@ def choose_mode():
     run_mode_parser.add_argument("--region", help="Provide the AWS region manually", default="us-west-2")
 
     monitor_mode_parser = subparser.add_parser("monitor", help="Monitor CT logs and run a vulnerability assessment for a matching host.")
+    monitor_mode_parser.add_argument("--config", type=str, default="config.yml", help="Config file for this program")
     monitor_mode_parser.add_argument(
         "--profile",
         help="Provide the AWS Profile from your boto configuration",
@@ -186,25 +189,27 @@ def choose_mode():
 
 
 def main():
-    args = choose_mode(sys.argv[1:])
+    args = choose_mode()
 
     # STEP 1: Load config
-    config = load_config()
+    config = load_config(args.config)
     vautomator_url = config['vautomator']['url']
     region = config['vautomator']['region']
 
-    # STEP 2: Check if the target given is valid
-    if not validate_target(args.fqdn):
-        sys.exit(127)
+    # STEP 2: Let's check the profile OR API key
+    api_key = check_authorization(region, args.profile)
 
-    # STEP 3: We are good for target, let's check the profile OR API key
-    api_key = check_authorization(args.profile, region)
-
-    if args.run:
+    # STEP 3: Check if the target given is valid.
+    # Note a target host is only required for 2 modes
+    if args.mode == 'run':
+        if not validate_target(args.fqdn):
+            sys.exit(127)
         run_vulnerability_assessment(api_key, args.fqdn, vautomator_url)
-    elif args.download:
+    elif args.mode == 'download':
+        if not validate_target(args.fqdn):
+            sys.exit(127)
         download_assessment_results(api_key, args, vautomator_url)
-    elif args.monitor:
+    elif args.mode == 'monitor':
         monitor_ct_logs(api_key, vautomator_url)
     else:
         logging.error("Unsupported mode. Exiting.")

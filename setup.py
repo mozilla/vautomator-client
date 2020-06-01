@@ -9,8 +9,8 @@ HERE = pathlib.Path(__file__).parent
 
 # The text of the README file
 README = (HERE / "README.md").read_text()
+requirements = (HERE / "requirements.txt").read_text()
 
-requirements = ["boto3"]
 test_requirements = [
     "pytest",
     "pytest-watch",
@@ -37,13 +37,8 @@ setup(
     ],
     install_requires=requirements,
     license="Mozilla Public License 2.0",
-    include_package_data=True,
-    packages=find_packages(include=["va_ondemand"]),
-    package_data={
-        "va_ondemand": [
-            # TODO
-        ]
-    },
+    packages=find_packages('src'),
+    package_dir = {'':'src'},
     setup_requires=setup_requirements,
     tests_require=test_requirements,
     extras_require=extras,

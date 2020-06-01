@@ -14,10 +14,15 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+.install-test
+venv
+build
 
 # We don't want results to be committed
 results/
-examples/results
+
+Pipfile
+Pipfile.lock
 
 # Ignore caches
 .pytest_cache/
