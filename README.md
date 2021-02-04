@@ -22,7 +22,7 @@ It is highly recommended to use the great `maws` tool (https://pypi.org/project/
 
 ### Run it!
 1. To run a scan on a target host: `va_ondemand run www.mozilla.org`
-    - If everything goes well, you should have results emailed to a [pre-defined list of recipients](https://github.com/mozilla/vautomator-serverless/blob/master/serverless.yml#L414) in an hour or so.
+    - If everything goes well, you should, in an hour or so, have results sent to an [SNS Topic](https://github.com/mozilla/vautomator-serverless/blob/31908da57a769dd097ee73977a7863d3af3143ca/serverless.yml#L419-L432) which in turn has a Google Group, [vautomator-results](https://groups.google.com/a/mozilla.com/forum/#!forum/vautomator-results) subscribed to it. If you join this Google Group, you will get results emailed to you.
 2. To (manually) download results for a scan: `va_ondemand download www.mozilla.org`.
     - This should create a `tar.gz` file under a folder called `results` in the current working directory, containing output from tooling.
 3. To monitor CT logs and automatically kick off a scan for specific subdomains: `va_ondemand monitor`.
