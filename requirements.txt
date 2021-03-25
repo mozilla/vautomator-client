@@ -2,4 +2,4 @@ boto3==1.9.165
 requests==2.22.0
 certstream==1.10
 netaddr==0.7.19
-PyYAML==5.3.1
+PyYAML==5.4
